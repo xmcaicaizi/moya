@@ -71,3 +71,13 @@ export default defineConfig([
   },
 ])
 ```
+
+## Project Status
+
+Development is active.
+
+## Agent Workflow
+
+This project uses a dual-agent workflow:
+1. **Coder Agent**: Implements features on `feat/*` branches.
+2. **Reviewer Agent**: Reviews code and merges to `main`.
