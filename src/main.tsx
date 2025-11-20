@@ -4,32 +4,26 @@ import './index.css'
 import App from './App.tsx'
 import VConsole from 'vconsole';
 
+// 修复完成：恢复完整功能
 // 仅在开发环境或 URL 带 ?debug=true 时开启调试面板
 if (import.meta.env.DEV || new URLSearchParams(window.location.search).get('debug') === 'true') {
-  const vConsole = new VConsole();
-  console.log('vConsole initialized');
+  // 延迟初始化 vConsole 确保 DOM 准备就绪
+  setTimeout(() => {
+    try {
+      new VConsole();
+    } catch (e) {
+      console.error('vConsole failed to load', e);
+    }
+  }, 0);
 }
 
-// 全局错误捕获，防止白屏
+// 全局错误捕获
 window.addEventListener('error', (event) => {
-  document.body.innerHTML = `
-    <div style="padding: 20px; color: red; font-family: sans-serif;">
-      <h1>Global Error Caught</h1>
-      <pre>${event.error?.message || event.message}</pre>
-      <pre>${event.error?.stack || ''}</pre>
-    </div>
-  `;
+  // 忽略 vConsole 自身的 resize 报错
+  if (event.message.includes('ResizeObserver')) return;
+  
+  console.error("Global Error:", event.error);
 });
-
-window.addEventListener('unhandledrejection', (event) => {
-    document.body.innerHTML = `
-      <div style="padding: 20px; color: red; font-family: sans-serif;">
-        <h1>Unhandled Promise Rejection</h1>
-        <pre>${event.reason?.message || event.reason}</pre>
-        <pre>${event.reason?.stack || ''}</pre>
-      </div>
-    `;
-  });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
