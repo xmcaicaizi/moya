@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './lib/supabase';
-import { Loader2, BookOpen, LogOut, Plus, Save, AlertTriangle, ArrowLeft, FileText, Book } from 'lucide-react';
+import { Loader2, LogOut, Plus, ArrowLeft, Book, PenLine } from 'lucide-react';
 import Editor from './components/Editor';
 import SettingsPanel from './components/SettingsPanel';
 import { useDebouncedCallback } from 'use-debounce';
@@ -23,21 +23,18 @@ interface Chapter {
 function App() {
   const { user, loading, error, initialize, signIn, signOut } = useAuthStore();
   
-  // 状态管理
   const [novels, setNovels] = useState<Novel[]>([]);
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   
-  // UI 状态
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showSettings, setShowSettings] = useState(false); // 设定集开关
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => { initialize(); }, [initialize]);
 
-  // 加载小说列表
   useEffect(() => {
     if (user && !selectedNovel) {
       const fetchNovels = async () => {
@@ -51,7 +48,6 @@ function App() {
     }
   }, [user, selectedNovel]);
 
-  // 加载章节列表
   useEffect(() => {
     if (selectedNovel) {
       const fetchChapters = async () => {
@@ -66,7 +62,6 @@ function App() {
     }
   }, [selectedNovel]);
 
-  // 自动保存逻辑 (防抖 1000ms)
   const autoSave = useDebouncedCallback(async (chapterId: string, json: any, text: string) => {
     if (!chapterId) return;
     setIsSaving(true);
@@ -87,7 +82,6 @@ function App() {
     }
   }, 1000);
 
-  // 创建小说
   const createNovel = async () => {
     if (!newTitle.trim() || !user) return;
     setCreating(true);
@@ -108,7 +102,6 @@ function App() {
     }
   };
 
-  // 创建章节
   const createChapter = async () => {
     if (!selectedNovel) return;
     const title = prompt("请输入章节标题", "新章节");
@@ -125,6 +118,10 @@ function App() {
         }])
         .select();
         
+      if (error) {
+          console.error("Create chapter error:", error);
+      }
+
       if (data) {
         setChapters([...chapters, data[0] as Chapter]);
         setSelectedChapter(data[0] as Chapter);
@@ -134,43 +131,55 @@ function App() {
     }
   };
 
-  // 视图渲染逻辑
   if (error) return <div className="p-8 text-red-600 bg-red-50 h-screen flex items-center justify-center">{error}</div>;
-  if (loading) return <div className="h-screen flex items-center justify-center">启动中...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  
+  // Login Screen
   if (!user) return (
-    <div className="h-screen flex items-center justify-center flex-col gap-4">
-      <h1 className="text-4xl font-bold">墨矢 Moya</h1>
-      <button onClick={signIn} className="px-6 py-3 bg-black text-white rounded-lg">登录开始写作</button>
+    <div className="h-screen flex flex-col items-center justify-center bg-paper p-6">
+      <div className="w-full max-w-md space-y-8 text-center">
+        <div className="space-y-2">
+          <h1 className="text-5xl font-serif font-bold text-ink tracking-tight">墨矢 Moya</h1>
+          <p className="text-gray-500 font-light text-lg">你写一句，我记一辈子</p>
+        </div>
+        <button 
+          onClick={signIn}
+          className="w-full py-3 px-6 bg-ink text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+          <span className="font-medium">开启创作之旅</span>
+        </button>
+      </div>
     </div>
   );
 
-  // 编辑器视图
+  // Editor View
   if (selectedChapter) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50">
-        <header className="bg-white border-b p-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="h-screen flex flex-col bg-paper">
+        <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 p-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSelectedChapter(null)} className="p-2 hover:bg-gray-100 rounded-full">
+            <button onClick={() => setSelectedChapter(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="font-bold text-lg">{selectedChapter.title}</h2>
-              <p className="text-xs text-gray-500">
-                {isSaving ? '保存中...' : '已保存'} · {selectedChapter.updated_at ? new Date(selectedChapter.updated_at).toLocaleTimeString() : ''}
+              <h2 className="font-bold text-lg text-ink font-serif">{selectedChapter.title}</h2>
+              <p className="text-xs text-gray-400 flex items-center gap-1">
+                {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>}
+                {isSaving ? '保存中...' : '已同步'}
               </p>
             </div>
           </div>
           
-          {/* 设定集入口 */}
           <button 
             onClick={() => setShowSettings(true)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Book className="w-4 h-4" />
-            设定集
+            <span className="hidden sm:inline">设定集</span>
           </button>
         </header>
-        <main className="flex-1 max-w-3xl mx-auto w-full p-8">
+        <main className="flex-1 max-w-3xl mx-auto w-full p-6 sm:p-12">
           <Editor 
             key={selectedChapter.id}
             novelId={selectedNovel!.id}
@@ -181,7 +190,6 @@ function App() {
           />
         </main>
 
-        {/* 侧边栏：设定集 */}
         <SettingsPanel 
           novelId={selectedNovel!.id}
           isOpen={showSettings} 
@@ -191,47 +199,63 @@ function App() {
     );
   }
 
-  // 章节列表视图 (进入小说后)
+  // Chapter List View
   if (selectedNovel) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-paper p-6 sm:p-12">
         <div className="max-w-4xl mx-auto">
-          <header className="flex items-center gap-4 mb-8">
-            <button onClick={() => setSelectedNovel(null)} className="p-2 hover:bg-gray-100 rounded-full">
+          <header className="flex items-center gap-4 mb-12">
+            <button onClick={() => setSelectedNovel(null)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-3xl font-bold">{selectedNovel.title}</h1>
+            <div>
+              <h1 className="text-3xl font-serif font-bold text-ink">{selectedNovel.title}</h1>
+              <p className="text-gray-400 text-sm mt-1">共 {chapters.length} 章</p>
+            </div>
             <div className="ml-auto flex gap-2">
-              <button onClick={() => setShowSettings(true)} className="px-4 py-2 bg-white border text-black rounded-lg flex items-center gap-2 hover:bg-gray-50">
-                <Book className="w-4 h-4" /> 设定集
+              <button onClick={() => setShowSettings(true)} className="px-4 py-2 bg-white border border-gray-200 text-ink rounded-xl flex items-center gap-2 hover:bg-gray-50 shadow-sm transition-all">
+                <Book className="w-4 h-4" /> 
+                <span className="hidden sm:inline">设定集</span>
               </button>
-              <button onClick={createChapter} className="px-4 py-2 bg-black text-white rounded-lg flex items-center gap-2">
-                <Plus className="w-4 h-4" /> 新建章节
+              <button onClick={createChapter} className="px-4 py-2 bg-ink text-white rounded-xl flex items-center gap-2 hover:opacity-90 shadow-lg shadow-gray-200 transition-all">
+                <Plus className="w-4 h-4" /> 
+                <span className="hidden sm:inline">新建章节</span>
               </button>
             </div>
           </header>
           
-          <div className="space-y-4">
-            {chapters.length === 0 && <div className="text-center py-10 text-gray-400">暂无章节，点击右上角新建</div>}
-            {chapters.map(chapter => (
+          <div className="grid gap-3">
+            {chapters.length === 0 && (
+              <div className="text-center py-20 border-2 border-dashed border-gray-100 rounded-2xl">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                  <PenLine className="w-8 h-8" />
+                </div>
+                <p className="text-gray-400">暂无章节，开始你的第一章吧</p>
+              </div>
+            )}
+            {chapters.map((chapter, index) => (
               <div 
                 key={chapter.id} 
                 onClick={() => setSelectedChapter(chapter)}
-                className="p-4 bg-white border rounded-xl cursor-pointer hover:shadow-md transition flex items-center justify-between"
+                className="group p-5 bg-white border border-gray-100 rounded-xl cursor-pointer hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between"
               >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                  <span className="font-medium">{chapter.title}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-300 font-serif text-lg font-bold italic w-8">
+                    {(index + 1).toString().padStart(2, '0')}
+                  </span>
+                  <div>
+                    <h3 className="font-medium text-ink text-lg group-hover:text-blue-600 transition-colors">{chapter.title}</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      上次编辑: {new Date(chapter.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-400">
-                  {new Date(chapter.updated_at).toLocaleDateString()}
-                </span>
+                <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180 group-hover:translate-x-1 transition-transform" />
               </div>
             ))}
           </div>
         </div>
         
-        {/* 侧边栏支持在目录页打开 */}
         <SettingsPanel 
           novelId={selectedNovel!.id}
           isOpen={showSettings} 
@@ -241,48 +265,87 @@ function App() {
     );
   }
 
-  // 小说列表视图 (默认首页)
+  // Novel List View (Home)
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="flex justify-between items-center mb-12">
+    <div className="min-h-screen bg-paper p-6 sm:p-12">
+      <div className="max-w-6xl mx-auto">
+        <header className="flex justify-between items-center mb-16">
           <div className="flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-gray-900" />
-            <h1 className="text-2xl font-bold">我的作品</h1>
+            <div className="w-10 h-10 bg-ink text-white rounded-lg flex items-center justify-center">
+              <span className="font-serif font-bold text-xl">M</span>
+            </div>
+            <h1 className="text-2xl font-serif font-bold text-ink tracking-tight">墨矢</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm">{user.email}</span>
-            <button onClick={signOut}><LogOut className="w-5 h-5 text-gray-500" /></button>
+          <div className="flex items-center gap-6">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-ink">{user.email}</p>
+              <p className="text-xs text-gray-400">Pro Plan</p>
+            </div>
+            <button onClick={signOut} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
-        <div className="flex gap-3 mb-8">
-          <input 
-            type="text" 
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="输入新书名..." 
-            className="flex-1 p-4 border rounded-xl focus:ring-2 focus:ring-black"
-            onKeyDown={(e) => e.key === 'Enter' && createNovel()}
-          />
-          <button onClick={createNovel} className="px-8 bg-black text-white rounded-xl font-medium">新建</button>
+        <div className="mb-12">
+          <h2 className="text-4xl font-serif font-bold text-ink mb-6">我的作品</h2>
+          <div className="flex gap-3 max-w-xl">
+            <input 
+              type="text" 
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="给新书起个名字..." 
+              className="flex-1 p-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all shadow-sm"
+              onKeyDown={(e) => e.key === 'Enter' && createNovel()}
+            />
+            <button 
+              onClick={createNovel} 
+              disabled={!newTitle.trim() || creating}
+              className="px-8 bg-ink text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 shadow-lg shadow-gray-200 transition-all"
+            >
+              {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : '新建'}
+            </button>
+          </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-3">
-          {novels.map((novel) => (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {novels.map((novel, index) => (
             <div 
               key={novel.id} 
               onClick={() => setSelectedNovel(novel)}
-              className="p-6 bg-white border rounded-2xl hover:shadow-xl cursor-pointer transition group"
+              className="group relative bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-300 hover:shadow-xl transition-all cursor-pointer h-72 flex flex-col"
             >
-              <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors">{novel.title}</h3>
-              <p className="text-sm text-gray-400">{new Date(novel.created_at).toLocaleDateString()}</p>
+              {/* 封面占位 */}
+              <div className={`h-32 w-full bg-gradient-to-br ${getGradient(index)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+              
+              <div className="p-6 flex-1 flex flex-col">
+                <h3 className="text-xl font-serif font-bold text-ink mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                  {novel.title}
+                </h3>
+                <div className="mt-auto flex items-center text-xs text-gray-400">
+                  <span className="bg-gray-50 px-2 py-1 rounded text-gray-500">连载中</span>
+                  <span className="ml-auto">{new Date(novel.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
     </div>
   );
+}
+
+// 辅助函数：生成随机渐变色封面
+function getGradient(index: number) {
+  const gradients = [
+    'from-pink-300 to-rose-300',
+    'from-orange-300 to-amber-300',
+    'from-emerald-300 to-teal-300',
+    'from-cyan-300 to-blue-300',
+    'from-indigo-300 to-violet-300',
+    'from-fuchsia-300 to-purple-300',
+  ];
+  return gradients[index % gradients.length];
 }
 
 export default App;

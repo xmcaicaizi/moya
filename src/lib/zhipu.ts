@@ -27,6 +27,17 @@ export const streamCompletion = async (
   onChunk: (text: string) => void,
   onError: (err: any) => void
 ) => {
+  if (!API_KEY) {
+    console.warn("Mocking AI response due to missing API Key");
+    const mockText = "（AI Mock 生成内容）随着一阵剧烈的震动，飞船缓缓驶入了星港。眼前的景象令人惊叹...（请配置 VITE_ZHIPU_API_KEY 以使用真实 AI）";
+    const chars = mockText.split('');
+    for (const char of chars) {
+      await new Promise(r => setTimeout(r, 50)); // Simulate typing
+      onChunk(char);
+    }
+    return;
+  }
+
   try {
     const token = await generateToken();
     

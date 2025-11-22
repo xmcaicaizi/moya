@@ -2,7 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect, useState } from 'react';
-import { Loader2, Sparkles, Brain, Database } from 'lucide-react';
+import { Loader2, Sparkles, Brain, Database, Check } from 'lucide-react';
 import { streamCompletion } from '../lib/zhipu';
 import EmbeddingService from '../lib/embedding';
 import { supabase } from '../lib/supabase';
@@ -12,7 +12,7 @@ interface EditorProps {
   onUpdate: (json: any, text: string) => void;
   isSaving?: boolean;
   novelId: string;
-  chapterId: string; // 新增：用于绑定向量
+  chapterId: string;
 }
 
 const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId }: EditorProps) => {
@@ -24,13 +24,13 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: '开始你的创作... (点击右上角 ✨ AI 续写)',
+        placeholder: '开始你的故事... (输入 / 唤起 AI，或直接点击右上角)',
       }),
     ],
     content: initialContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-lg max-w-none focus:outline-none min-h-[500px] p-4',
+        class: 'prose prose-lg prose-stone max-w-none focus:outline-none min-h-[calc(100vh-200px)] px-8 py-4 font-serif leading-relaxed',
       },
     },
     onUpdate: ({ editor }) => {
@@ -42,7 +42,6 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
     EmbeddingService.getInstance();
   }, []);
 
-  // 手动触发记忆同步 (写入向量)
   const handleSyncMemory = async () => {
     if (!editor || isSyncing) return;
     const text = editor.getText();
@@ -55,14 +54,11 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
     setStatus('正在写入记忆库...');
 
     try {
-      // 1. 简单的切片策略：按500字切片
       const chunks = [];
       for (let i = 0; i < text.length; i += 500) {
         chunks.push(text.slice(i, i + 500));
       }
 
-      // 2. 逐个计算向量并存入
-      // 先删除旧的记忆（为了简化 MVP，全量覆盖）
       await supabase.from('documents').delete().eq('chapter_id', chapterId);
 
       let count = 0;
@@ -149,65 +145,62 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
   if (!editor) return null;
 
   return (
-    <div className="relative border rounded-xl bg-white shadow-sm min-h-[600px] flex flex-col">
-      <div className="border-b p-2 flex justify-between items-center gap-2 bg-gray-50 rounded-t-xl sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            {isSaving && (
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                保存中...
-              </span>
-            )}
-            {!isSaving && <span className="text-xs text-gray-400">已保存</span>}
-          </div>
-          
-          {status && (
-            <div className="flex items-center gap-1 text-xs text-indigo-600 animate-pulse font-medium bg-indigo-50 px-2 py-1 rounded-full">
-              <Brain className="w-3 h-3" />
-              {status}
-            </div>
+    <div className="relative flex flex-col h-full">
+      {/* 悬浮工具栏 (Glassmorphism) */}
+      <div className="sticky top-6 z-20 mx-auto mb-8 flex items-center gap-3 bg-white/90 backdrop-blur shadow-lg border border-gray-100 rounded-full px-4 py-2 transition-all hover:shadow-xl">
+        <div className="flex items-center gap-2 border-r pr-4 mr-2">
+          {isSaving ? (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Saving...
+            </span>
+          ) : (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Saved
+            </span>
           )}
         </div>
 
-        <div className="flex gap-2">
-          {/* 记忆同步按钮 */}
-          <button
-            onClick={handleSyncMemory}
-            disabled={isSyncing || isGenerating}
-            title="将当前章节存入长期记忆，供AI检索"
-            className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-          </button>
+        {status ? (
+          <div className="text-xs text-indigo-600 animate-pulse font-medium flex items-center gap-1">
+            <Brain className="w-3 h-3" />
+            {status}
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={handleSyncMemory}
+              disabled={isSyncing}
+              className="p-2 text-gray-500 hover:text-ink hover:bg-gray-100 rounded-full transition-colors"
+              title="同步记忆"
+            >
+              {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            </button>
+            
+            <div className="w-px h-4 bg-gray-200"></div>
 
-          <button 
-            onClick={handleAIContinue}
-            disabled={isGenerating}
-            className={`
-              flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
-              ${isGenerating 
-                ? 'bg-red-50 text-red-600 border border-red-100 cursor-wait' 
-                : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:shadow-md hover:-translate-y-0.5'
-              }
-            `}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                AI 续写
-              </>
-            )}
-          </button>
-        </div>
+            <button 
+              onClick={handleAIContinue}
+              disabled={isGenerating}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                ${isGenerating 
+                  ? 'bg-gray-100 text-gray-400 cursor-wait' 
+                  : 'bg-ink text-white hover:bg-gray-800 hover:scale-105 active:scale-95'
+                }
+              `}
+            >
+              {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              <span>{isGenerating ? '思考中...' : 'AI 续写'}</span>
+            </button>
+          </>
+        )}
       </div>
 
-      <EditorContent editor={editor} className="flex-1 p-4" />
+      <div className="flex-1 bg-white rounded-none sm:rounded-xl shadow-sm sm:shadow-none min-h-[80vh]">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 };
