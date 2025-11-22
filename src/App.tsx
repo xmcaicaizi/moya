@@ -161,7 +161,8 @@ function App() {
         </header>
         <main className="flex-1 max-w-3xl mx-auto w-full p-8">
           <Editor 
-            key={selectedChapter.id} // 关键：切换章节时重置编辑器
+            key={selectedChapter.id}
+            novelId={selectedNovel!.id} // 传入 novelId 供 RAG 使用
             initialContent={selectedChapter.content}
             isSaving={isSaving}
             onUpdate={(json, text) => autoSave(selectedChapter.id, json, text)}
