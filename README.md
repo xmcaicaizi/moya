@@ -1,83 +1,156 @@
-# React + TypeScript + Vite
+[中文](README.md) | [English](README_EN.md)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# 墨矢 (Moya) - AI 驱动的小说创作助手
 
-Currently, two official plugins are available:
+Moya (墨矢) 是一个基于 AI 的创意写作助手，旨在通过记忆和上下文感知帮助小说家创作更好的故事。它不仅仅是一个编辑器，更是一个能够“记住”你设定和剧情的智能合著者。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ 核心功能
 
-## React Compiler
+*   **智能编辑器**: 基于 Tiptap 的富文本编辑器，支持 Markdown 语法，提供流畅的写作体验。
+*   **AI 续写 (Co-Author)**: 集成智谱 AI (GLM-4.5)，根据上下文感知自动续写情节，保持风格一致。
+*   **长期记忆 (RAG)**: 基于 Supabase Vector 和 Transformers.js 的检索增强生成 (RAG) 系统，能够“记住”之前的章节和设定。
+*   **世界观构建**: 专用的设定集面板（角色、地点、物品），自动向量化并用于 AI 检索，确保设定不崩坏。
+*   **云端同步**: 使用 Supabase 进行实时数据存储和同步，随时随地写作。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠 技术栈
 
-## Expanding the ESLint configuration
+*   **前端**: React 19, Vite, Tailwind CSS
+*   **状态管理**: Zustand
+*   **后端/数据库**: Supabase (PostgreSQL + Auth + Vector)
+*   **AI & 向量**: Zhipu AI (GLM-4.5), Transformers.js (本地 Embedding), Supabase Vector
+*   **编辑器**: Tiptap
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 快速开始
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 1. 环境准备
+确保你的开发环境已安装：
+- Node.js (v18+)
+- npm 或 yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. 克隆项目
+```bash
+git clone <repository-url>
+cd moya
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3. 配置环境变量
+在 `moya` 目录下创建 `.env` 文件，填入以下配置：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=你的_Supabase_Project_URL
+VITE_SUPABASE_ANON_KEY=你的_Supabase_Anon_Key
+VITE_ZHIPU_API_KEY=你的_智谱AI_API_Key
 ```
 
-## Project Status
+### 4. 数据库设置 (Supabase)
+在 Supabase 的 SQL Editor 中执行以下 SQL 语句以初始化数据库结构：
 
-Development is active.
+```sql
+-- 1. 启用向量扩展
+create extension if not exists vector;
+create extension if not exists moddatetime;
 
-## Agent Workflow
+-- 2. 小说表 (Novels)
+create table novels (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  title text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+alter table novels enable row level security;
+create policy "Users can manage their own novels" on novels for all using (auth.uid() = user_id);
 
-This project uses a dual-agent workflow:
-1. **Coder Agent**: Implements features on `feat/*` branches.
-2. **Reviewer Agent**: Reviews code and merges to `main`.
+-- 3. 章节表 (Chapters)
+create table chapters (
+  id uuid default gen_random_uuid() primary key,
+  novel_id uuid references novels(id) on delete cascade not null,
+  title text not null,
+  content jsonb,
+  plain_text text,
+  word_count integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+alter table chapters enable row level security;
+create policy "Users can manage their own chapters" on chapters for all using (
+  exists (select 1 from novels where novels.id = chapters.novel_id and novels.user_id = auth.uid())
+);
+create trigger handle_updated_at before update on chapters for each row execute procedure moddatetime (updated_at);
+
+-- 4. 文档/向量表 (Documents)
+create table documents (
+  id uuid default gen_random_uuid() primary key,
+  novel_id uuid references novels(id) on delete cascade not null,
+  chapter_id uuid references chapters(id) on delete cascade, -- 可为空（全局设定）
+  content text not null,
+  metadata jsonb, -- 存储类型: 'setting' | 'fragment', name: '...'
+  embedding vector(384) -- 匹配 all-MiniLM-L6-v2 模型
+);
+create index on documents using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+alter table documents enable row level security;
+create policy "Users can manage their own documents" on documents for all using (
+  exists (select 1 from novels where novels.id = documents.novel_id and novels.user_id = auth.uid())
+);
+
+-- 5. 向量搜索函数
+create or replace function match_documents (
+  query_embedding vector(384),
+  match_threshold float,
+  match_count int,
+  filter_novel_id uuid
+)
+returns table (
+  id uuid,
+  content text,
+  similarity float
+)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    documents.id,
+    documents.content,
+    1 - (documents.embedding <=> query_embedding) as similarity
+  from documents
+  where 1 - (documents.embedding <=> query_embedding) > match_threshold
+  and documents.novel_id = filter_novel_id
+  order by documents.embedding <=> query_embedding
+  limit match_count;
+end;
+$$;
+```
+
+### 5. 启动开发服务器
+```bash
+npm run dev
+```
+
+## 📅 开发计划与状态
+
+**当前状态: MVP 完成 (Day 1-5)**
+
+- [x] **Day 1: 基础设置与认证** - 项目初始化, Supabase 集成, Google OAuth。
+- [x] **Day 2: 编辑器核心** - Tiptap 编辑器集成, 章节管理, 自动保存。
+- [x] **Day 3: AI 集成** - 智谱 GLM-4.5 连接, 流式文本生成。
+- [x] **Day 4: RAG 记忆系统** - 向量数据库设置 (Supabase pgvector), Transformers.js 嵌入, 上下文检索。
+- [x] **Day 5: 世界观与记忆同步** - 设定集面板 (角色/世界/物品), 主动记忆同步。
+- [ ] **Day 6: UI 优化** - 视觉增强, 暗色模式, 更好的排版。
+- [ ] **Day 7: 部署** - 生产构建, 部署上线。
+
+## 🤝 贡献与 Git 流程
+
+本项目采用双 Agent 工作流模式，同时也欢迎人类开发者贡献：
+
+1.  **分支管理**:
+    -   `main`: 主分支，保持稳定。
+    -   `feat/feature-name`: 新功能开发分支。
+    -   `fix/bug-name`: 问题修复分支。
+
+2.  **提交规范**:
+    -   `feat`: 新功能
+    -   `fix`: 修复 Bug
+    -   `docs`: 文档修改
+    -   `style`: 代码格式修改 (不影响代码运行的变动)
+    -   `refactor`: 重构 (既不是新增功能也不是修改 bug 的代码变动)
