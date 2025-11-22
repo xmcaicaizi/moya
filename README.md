@@ -1,80 +1,34 @@
-# React + TypeScript + Vite
+# Moya - AI Novel Writing Assistant
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Moya (墨矢) is an AI-powered creative writing assistant designed to help novelists craft better stories with memory and context awareness.
 
-Currently, two official plugins are available:
+## 🚀 Project Status
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Current Status: MVP Complete (Day 1-5)**
 
-## React Compiler
+- [x] **Day 1: Setup & Auth** - Project initialization, Supabase integration, Google OAuth.
+- [x] **Day 2: Editor Core** - Tiptap editor integration, chapter management, auto-save.
+- [x] **Day 3: AI Integration** - Zhipu GLM-4.5 connectivity, streaming text generation.
+- [x] **Day 4: RAG Memory System** - Vector database setup (Supabase pgvector), Transformers.js embedding, context retrieval.
+- [x] **Day 5: World Bible & Memory Sync** - Settings panel (Characters/World/Items), active memory synchronization.
+- [ ] **Day 6: UI Polish** - Visual enhancements, dark mode, better typography.
+- [ ] **Day 7: Deployment** - Production build, Vercel/Netlify deployment.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ Key Features
 
-## Expanding the ESLint configuration
+*   **Smart Editor**: Rich text editing with Markdown support via Tiptap.
+*   **AI Co-Author**: Context-aware continuation powered by GLM-4.5.
+*   **Long-term Memory**: RAG (Retrieval-Augmented Generation) system that "remembers" your previous chapters and settings.
+*   **World Building**: Dedicated panel to manage characters, locations, and items, which are automatically embedded for AI retrieval.
+*   **Cloud Sync**: Real-time data persistence with Supabase.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠 Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-## Project Status
-
-Development is active.
+*   **Frontend**: React 19, Vite, Tailwind CSS
+*   **State Management**: Zustand
+*   **Database & Auth**: Supabase
+*   **AI & Vectors**: Zhipu AI (GLM), Transformers.js (Embeddings), Supabase Vector
+*   **Editor**: Tiptap
 
 ## Agent Workflow
 
