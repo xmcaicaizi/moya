@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from './store/authStore';
 import { supabase } from './lib/supabase';
-import { Loader2, BookOpen, LogOut, Plus, Save, AlertTriangle, ArrowLeft, FileText } from 'lucide-react';
+import { Loader2, BookOpen, LogOut, Plus, Save, AlertTriangle, ArrowLeft, FileText, Book } from 'lucide-react';
 import Editor from './components/Editor';
+import SettingsPanel from './components/SettingsPanel';
 import { useDebouncedCallback } from 'use-debounce';
 
 interface Novel {
@@ -32,6 +33,7 @@ function App() {
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // 设定集开关
 
   useEffect(() => { initialize(); }, [initialize]);
 
@@ -158,16 +160,33 @@ function App() {
               </p>
             </div>
           </div>
+          
+          {/* 设定集入口 */}
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Book className="w-4 h-4" />
+            设定集
+          </button>
         </header>
         <main className="flex-1 max-w-3xl mx-auto w-full p-8">
           <Editor 
             key={selectedChapter.id}
-            novelId={selectedNovel!.id} // 传入 novelId 供 RAG 使用
+            novelId={selectedNovel!.id}
+            chapterId={selectedChapter.id}
             initialContent={selectedChapter.content}
             isSaving={isSaving}
             onUpdate={(json, text) => autoSave(selectedChapter.id, json, text)}
           />
         </main>
+
+        {/* 侧边栏：设定集 */}
+        <SettingsPanel 
+          novelId={selectedNovel!.id}
+          isOpen={showSettings} 
+          onClose={() => setShowSettings(false)} 
+        />
       </div>
     );
   }
@@ -182,9 +201,14 @@ function App() {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-3xl font-bold">{selectedNovel.title}</h1>
-            <button onClick={createChapter} className="ml-auto px-4 py-2 bg-black text-white rounded-lg flex items-center gap-2">
-              <Plus className="w-4 h-4" /> 新建章节
-            </button>
+            <div className="ml-auto flex gap-2">
+              <button onClick={() => setShowSettings(true)} className="px-4 py-2 bg-white border text-black rounded-lg flex items-center gap-2 hover:bg-gray-50">
+                <Book className="w-4 h-4" /> 设定集
+              </button>
+              <button onClick={createChapter} className="px-4 py-2 bg-black text-white rounded-lg flex items-center gap-2">
+                <Plus className="w-4 h-4" /> 新建章节
+              </button>
+            </div>
           </header>
           
           <div className="space-y-4">
@@ -206,6 +230,13 @@ function App() {
             ))}
           </div>
         </div>
+        
+        {/* 侧边栏支持在目录页打开 */}
+        <SettingsPanel 
+          novelId={selectedNovel!.id}
+          isOpen={showSettings} 
+          onClose={() => setShowSettings(false)} 
+        />
       </div>
     );
   }
