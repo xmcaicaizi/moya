@@ -6,6 +6,7 @@ import { Loader2, Sparkles, Brain, Database, Check } from 'lucide-react';
 import { streamCompletion } from '../lib/zhipu';
 import EmbeddingService from '../lib/embedding';
 import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
 interface EditorProps {
   initialContent?: any;
@@ -19,6 +20,10 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [status, setStatus] = useState('');
+  
+  // AI Prompt UI State
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -51,6 +56,7 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
     }
 
     setIsSyncing(true);
+    logger.info('memory', 'Syncing chapter memory', { chapterId, length: text.length });
     setStatus('正在写入记忆库...');
 
     try {
@@ -60,6 +66,7 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
       }
 
       await supabase.from('documents').delete().eq('chapter_id', chapterId);
+      logger.info('memory', 'Cleared existing fragments', { chapterId });
 
       let count = 0;
       for (const chunk of chunks) {
@@ -72,18 +79,24 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
           metadata: { type: 'chapter_fragment', index: count++ }
         });
       }
+      logger.info('memory', 'Inserted memory fragments', { count });
       setStatus(`✅ 已同步 ${count} 条记忆片段`);
       setTimeout(() => setStatus(''), 3000);
     } catch (err: any) {
-      console.error(err);
+      logger.error('memory', 'Sync failed', err);
       setStatus('❌ 记忆同步失败');
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const handleAIContinue = async () => {
+  const handleAIContinue = () => {
+    setShowAiPrompt(!showAiPrompt);
+  };
+
+  const executeAI = async () => {
     if (!editor || isGenerating) return;
+    setShowAiPrompt(false); // Close popover
 
     const text = editor.getText();
     const currentContext = text.slice(-1000);
@@ -94,6 +107,7 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
     }
 
     setIsGenerating(true);
+    logger.info('ai', 'Starting AI continuation', { chapterId, contextLength: currentContext.length, instruction: aiInstruction });
     setStatus('🧠 回忆剧情中...');
     
     try {
@@ -108,6 +122,7 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
 
       let ragContext = "";
       if (relatedDocs && relatedDocs.length > 0) {
+        logger.info('ai', 'Found related documents', { count: relatedDocs.length });
         setStatus(`📖 参考了 ${relatedDocs.length} 处相关设定...`);
         ragContext = `
 【相关剧情回忆】：
@@ -125,6 +140,7 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
 
       await streamCompletion(
         finalPrompt,
+        aiInstruction || null, // Pass the instruction
         (chunk) => {
           editor.commands.insertContent(chunk);
           editor.commands.scrollIntoView();
@@ -133,14 +149,65 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
           throw err;
         }
       );
+      
+      // Clear instruction after success
+      setAiInstruction('');
 
     } catch (err: any) {
+      logger.error('ai', 'AI generation failed', err);
       alert(`AI 生成失败: ${err.message}`);
     } finally {
       setIsGenerating(false);
       setStatus('');
     }
   };
+
+  const renderPromptCard = () => (
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-gray-400">AI Copilot</p>
+          <p className="text-sm font-semibold text-ink">续写指令</p>
+        </div>
+        <button
+          onClick={() => setShowAiPrompt(false)}
+          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+        >
+          ×
+        </button>
+      </div>
+      <textarea
+        value={aiInstruction}
+        onChange={(e) => setAiInstruction(e.target.value)}
+        placeholder="想要怎么写？(例如：'加入一个反转'，留空则自由发挥)"
+        className="w-full p-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/10 focus:border-ink resize-none bg-gray-50"
+        rows={5}
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            executeAI();
+          }
+        }}
+      />
+      <div className="flex justify-between items-center pt-3">
+        <span className="text-[10px] text-gray-400">Enter 发送，Shift+Enter 换行</span>
+        <button
+          onClick={executeAI}
+          className="px-4 py-1.5 bg-ink text-white text-xs font-medium rounded-md hover:opacity-90 transition-opacity"
+        >
+          开始生成
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderPlaceholderCard = () => (
+    <div className="bg-white/70 border border-dashed border-gray-200 rounded-2xl p-4 text-sm text-gray-400">
+      <p className="font-medium text-gray-500 mb-1">AI 续写提示区</p>
+      <p>点击上方 <span className="font-semibold text-ink">AI 续写</span> 按钮，给 AI 一条指令，这里会展示可编辑的提示框。</p>
+    </div>
+  );
 
   if (!editor) return null;
 
@@ -187,7 +254,9 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
                 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
                 ${isGenerating 
                   ? 'bg-gray-100 text-gray-400 cursor-wait' 
-                  : 'bg-ink text-white hover:bg-gray-800 hover:scale-105 active:scale-95'
+                  : showAiPrompt
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-ink text-white hover:bg-gray-800 hover:scale-105 active:scale-95'
                 }
               `}
             >
@@ -198,8 +267,20 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
         )}
       </div>
 
-      <div className="flex-1 bg-white rounded-none sm:rounded-xl shadow-sm sm:shadow-none min-h-[80vh]">
-        <EditorContent editor={editor} />
+      <div className="relative flex justify-center px-4 lg:px-0 pb-16">
+        <div className="w-full max-w-3xl bg-white rounded-none sm:rounded-xl shadow-sm sm:shadow-none min-h-[80vh] mx-auto">
+          <EditorContent editor={editor} />
+        </div>
+
+        {/* 宽屏悬浮 (Fixed) - 仅在屏幕足够宽 (>1380px) 时显示，避免遮挡正文 */}
+        <div className="hidden min-[1380px]:block fixed top-32 right-6 w-80 z-20">
+          {showAiPrompt ? renderPromptCard() : renderPlaceholderCard()}
+        </div>
+      </div>
+
+      {/* 中小屏 (流式布局) - 显示在正文下方 */}
+      <div className="min-[1380px]:hidden max-w-3xl mx-auto mt-4 px-4 pb-12">
+        {showAiPrompt ? renderPromptCard() : renderPlaceholderCard()}
       </div>
     </div>
   );

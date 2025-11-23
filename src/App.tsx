@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
-import { supabase } from './lib/supabase';
-import { Loader2, LogOut, Plus, ArrowLeft, Book, PenLine } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { isZhipuConfigured } from './lib/zhipu';
+import { logger } from './lib/logger';
+import { Loader2, LogOut, Plus, ArrowLeft, Book, PenLine, AlertTriangle } from 'lucide-react';
 import Editor from './components/Editor';
 import SettingsPanel from './components/SettingsPanel';
 import { useDebouncedCallback } from 'use-debounce';
@@ -21,7 +23,7 @@ interface Chapter {
 }
 
 function App() {
-  const { user, loading, error, initialize, signIn, signOut } = useAuthStore();
+  const { user, loading, error, initialize, signInWithGoogle, signInWithEmail, signUp, signOut } = useAuthStore();
   
   const [novels, setNovels] = useState<Novel[]>([]);
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null);
@@ -33,16 +35,32 @@ function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Login State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
   useEffect(() => { initialize(); }, [initialize]);
 
   useEffect(() => {
     if (user && !selectedNovel) {
       const fetchNovels = async () => {
-        const { data } = await supabase
+        logger.info('novels', 'Fetching novels', { userId: user.id });
+        const { data, error } = await supabase
           .from('novels')
           .select('*')
           .order('created_at', { ascending: false });
-        if (data) setNovels(data as Novel[]);
+        
+        if (error) {
+          logger.error('novels', 'Fetch novels failed', error);
+          return;
+        }
+        if (data) {
+          logger.info('novels', 'Fetched novels', { count: data.length });
+          setNovels(data as Novel[]);
+        }
       };
       fetchNovels();
     }
@@ -51,12 +69,21 @@ function App() {
   useEffect(() => {
     if (selectedNovel) {
       const fetchChapters = async () => {
-        const { data } = await supabase
+        logger.info('chapters', 'Fetching chapters', { novelId: selectedNovel.id });
+        const { data, error } = await supabase
           .from('chapters')
           .select('*')
           .eq('novel_id', selectedNovel.id)
           .order('created_at', { ascending: true });
-        if (data) setChapters(data as Chapter[]);
+        
+        if (error) {
+          logger.error('chapters', 'Fetch chapters failed', error);
+          return;
+        }
+        if (data) {
+          logger.info('chapters', 'Fetched chapters', { count: data.length });
+          setChapters(data as Chapter[]);
+        }
       };
       fetchChapters();
     }
@@ -65,8 +92,9 @@ function App() {
   const autoSave = useDebouncedCallback(async (chapterId: string, json: any, text: string) => {
     if (!chapterId) return;
     setIsSaving(true);
+    logger.info('chapters', 'Auto-saving chapter', { chapterId, textLength: text.length });
     try {
-      await supabase
+      const { error } = await supabase
         .from('chapters')
         .update({ 
           content: json, 
@@ -75,16 +103,51 @@ function App() {
           updated_at: new Date().toISOString() 
         })
         .eq('id', chapterId);
+        
+      if (error) throw error;
+      logger.info('chapters', 'Auto-save success', { chapterId });
     } catch (err) {
-      console.error("Auto save failed:", err);
+      logger.error('chapters', 'Auto-save failed', err);
     } finally {
       setIsSaving(false);
     }
   }, 1000);
 
+  const handleGoogleSignIn = async () => {
+    setAuthError(null);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setAuthError(error.message || 'Google 登录失败，请检查 Supabase Provider 配置');
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setAuthLoading(true);
+    try {
+      let result;
+      if (isSignUp) {
+        result = await signUp(email, password);
+        if (result.error) throw result.error;
+        alert('注册成功！请检查邮箱进行验证，或者直接登录（如果未开启验证）。');
+        setIsSignUp(false); // Switch to login
+      } else {
+        result = await signInWithEmail(email, password);
+        if (result.error) throw result.error;
+      }
+      setAuthError(null);
+    } catch (err: any) {
+      setAuthError(err.message || '认证失败');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const createNovel = async () => {
     if (!newTitle.trim() || !user) return;
     setCreating(true);
+    logger.info('novels', 'Creating novel', { title: newTitle });
     try {
       const { data, error } = await supabase
         .from('novels')
@@ -93,9 +156,11 @@ function App() {
       if (error) throw error;
       if (data) {
         setNovels([data[0] as Novel, ...novels]);
+        logger.info('novels', 'Novel created', { id: data[0].id });
         setNewTitle('');
       }
     } catch (error) {
+      logger.error('novels', 'Create novel failed', error);
       alert('创建失败，请重试');
     } finally {
       setCreating(false);
@@ -107,6 +172,7 @@ function App() {
     const title = prompt("请输入章节标题", "新章节");
     if (!title) return;
     
+    logger.info('chapters', 'Creating chapter', { novelId: selectedNovel.id, title });
     try {
       const { data, error } = await supabase
         .from('chapters')
@@ -119,17 +185,46 @@ function App() {
         .select();
         
       if (error) {
-          console.error("Create chapter error:", error);
+          logger.error('chapters', 'Create chapter failed', error);
+          alert('章节创建失败: ' + error.message);
+          return;
       }
 
       if (data) {
         setChapters([...chapters, data[0] as Chapter]);
         setSelectedChapter(data[0] as Chapter);
+        logger.info('chapters', 'Chapter created', { id: data[0].id });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      logger.error('chapters', 'Unexpected error creating chapter', err);
+      alert('发生意外错误: ' + err.message);
     }
   };
+
+  // 1. Critical Configuration Check
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-red-50 p-8 text-center">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg border-l-4 border-red-500">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-red-100 rounded-full">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">数据库连接未配置</h2>
+          <p className="text-gray-600 mb-6">
+            Moya 需要连接到 Supabase 才能存储您的数据。检测到环境变量缺失。
+          </p>
+          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg text-left text-sm font-mono overflow-x-auto">
+            <p className="text-gray-400 mb-2">请在项目根目录创建 .env 文件：</p>
+            <p>VITE_SUPABASE_URL=...</p>
+            <p>VITE_SUPABASE_ANON_KEY=...</p>
+          </div>
+          <p className="mt-6 text-sm text-gray-500">配置完成后，请重启开发服务器。</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) return <div className="p-8 text-red-600 bg-red-50 h-screen flex items-center justify-center">{error}</div>;
   if (loading) return <div className="h-screen flex items-center justify-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /></div>;
@@ -140,15 +235,95 @@ function App() {
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="space-y-2">
           <h1 className="text-5xl font-serif font-bold text-ink tracking-tight">墨矢 Moya</h1>
-          <p className="text-gray-500 font-light text-lg">你写一句，我记一辈子</p>
         </div>
-        <button 
-          onClick={signIn}
-          className="w-full py-3 px-6 bg-ink text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-        >
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-          <span className="font-medium">开启创作之旅</span>
-        </button>
+        
+        {/* Login Card */}
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-sm mx-auto w-full">
+          <button 
+            onClick={handleGoogleSignIn}
+            className="w-full py-2.5 px-4 bg-white border border-gray-200 text-ink rounded-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm mb-4"
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+            <span className="font-medium text-sm">使用 Google 继续</span>
+          </button>
+          {authError && (
+            <div className="text-left text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
+              {authError}
+              <div className="text-[11px] text-red-400 mt-1">
+                如提示 provider 未启用，请前往 Supabase Dashboard → Authentication → Providers 启用 Google，并填写 GCP Client ID/Secret。
+              </div>
+            </div>
+          )}
+
+          <div className="relative flex py-2 items-center mb-6">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">或者使用邮箱</span>
+            <div className="flex-grow border-t border-gray-200"></div>
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            <div>
+              <input 
+                type="email" 
+                required
+                placeholder="邮箱地址"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all"
+              />
+            </div>
+            <div>
+              <input 
+                type="password" 
+                required
+                placeholder="密码 (至少6位)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all"
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-2.5 px-4 bg-ink text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+            >
+              {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isSignUp ? '注册账号' : '登录')}
+            </button>
+          </form>
+          
+          <div className="mt-4 text-center">
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-xs text-gray-500 hover:text-ink underline underline-offset-2"
+            >
+              {isSignUp ? '已有账号？直接登录' : '没有账号？点击注册'}
+            </button>
+          </div>
+          
+          <div className="mt-6 text-left bg-gray-50 border border-gray-100 rounded-lg p-4 text-xs space-y-2">
+            <p className="font-semibold text-gray-600 flex items-center gap-2">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              调试信息
+            </p>
+            <ul className="space-y-1 text-gray-500">
+              <li>• Supabase 连接：{isSupabaseConfigured ? '✅ 已配置' : '❌ 缺失 VITE_SUPABASE_*'}</li>
+              <li>• 智谱 AI：{isZhipuConfigured ? '✅ 可用' : '❌ 缺失 VITE_ZHIPU_API_KEY'}</li>
+              <li>• Google 登录：若报错，请在 Supabase → Auth → Providers 启用 Google。</li>
+              <li>• 邮箱登录：默认开启。如需跳过邮件验证，可在 Supabase Email 设置中关闭 Confirm Email。</li>
+            </ul>
+            <details className="mt-3 bg-white rounded p-2 border border-gray-200">
+              <summary className="cursor-pointer text-gray-700 font-semibold">🔍 环境变量检测</summary>
+              <div className="mt-2 text-[10px] font-mono space-y-1 text-gray-600">
+                <div>VITE_SUPABASE_URL: {import.meta.env.VITE_SUPABASE_URL || '❌ undefined'}</div>
+                <div>VITE_SUPABASE_ANON_KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? `✅ ${import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0,15)}...` : '❌ undefined'}</div>
+                <div>VITE_ZHIPU_API_KEY: {import.meta.env.VITE_ZHIPU_API_KEY ? `✅ ${import.meta.env.VITE_ZHIPU_API_KEY.slice(0,10)}...` : '❌ undefined'}</div>
+                <div className="pt-1 border-t border-gray-200 mt-2">
+                  所有 VITE_* 变量: {Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')).join(', ') || '无'}
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -179,7 +354,7 @@ function App() {
             <span className="hidden sm:inline">设定集</span>
           </button>
         </header>
-        <main className="flex-1 max-w-3xl mx-auto w-full p-6 sm:p-12">
+        <main className="flex-1 w-full max-w-[1440px] mx-auto p-6 sm:p-8 lg:p-12">
           <Editor 
             key={selectedChapter.id}
             novelId={selectedNovel!.id}
