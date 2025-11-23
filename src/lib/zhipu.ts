@@ -1,6 +1,8 @@
 import { SignJWT } from 'jose';
+import { logger } from './logger';
 
 const API_KEY = import.meta.env.VITE_ZHIPU_API_KEY;
+export const isZhipuConfigured = Boolean(API_KEY && API_KEY.includes('.'));
 
 // 1. 浏览器端生成 JWT (HS256)
 const generateToken = async () => {
@@ -24,12 +26,26 @@ const generateToken = async () => {
 // 2. 流式请求核心逻辑
 export const streamCompletion = async (
   context: string,
+  instruction: string | null,
   onChunk: (text: string) => void,
   onError: (err: any) => void
 ) => {
+  if (!API_KEY) {
+    const err = new Error("Missing VITE_ZHIPU_API_KEY. 请在 .env 中配置真实的智谱 API Key。");
+    logger.error('ai', err.message);
+    onError(err);
+    return;
+  }
+
   try {
     const token = await generateToken();
     
+    // 构造用户 Prompt
+    let userContent = context;
+    if (instruction) {
+      userContent = `【上文内容】：\n${context}\n\n【续写指令】：\n${instruction}\n\n请根据上文内容和续写指令，继续写一段故事。`;
+    }
+
     const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
       method: 'POST',
       headers: {
@@ -43,7 +59,7 @@ export const streamCompletion = async (
             role: 'system', 
             content: '你是一个专业的小说续写助手。请根据用户提供的上文，续写一段情节。风格要保持一致，富有画面感。不要重复上文内容。' 
           },
-          { role: 'user', content: context }
+          { role: 'user', content: userContent }
         ],
         stream: true,
         temperature: 0.7,
@@ -86,7 +102,7 @@ export const streamCompletion = async (
       }
     }
   } catch (err) {
-    console.error("AI Generation Failed:", err);
+    logger.error('ai', 'AI Generation Failed', err);
     onError(err);
   }
 };

@@ -3,35 +3,41 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase environment variables are missing!');
-}
+// 调试信息：打印环境变量读取状态
+console.log('[Supabase Config Debug]', {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseAnonKey,
+  url: supabaseUrl,
+  keyPrefix: supabaseAnonKey?.slice(0, 10),
+  allEnvKeys: Object.keys(import.meta.env).filter(k => k.startsWith('VITE_'))
+});
 
-// 创建一个安全的 Mock 客户端，防止初始化崩溃
-const createSafeClient = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("Using Mock Supabase Client due to missing env vars");
-    
-    const mockError = new Error('Supabase client not initialized (Missing Env Vars)');
-    const mockResponse = { data: { session: null }, error: mockError };
-    
-    // 模拟 Supabase 客户端结构
-    return {
-      auth: {
-        getSession: async () => mockResponse,
-        signInWithOAuth: async () => ({ error: mockError }),
-        signOut: async () => ({ error: mockError }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      },
-      from: () => ({
-        select: () => ({ order: () => ({ data: [], error: mockError }) }),
-        insert: () => ({ select: () => ({ data: null, error: mockError }) }),
-        update: () => ({ select: () => ({ data: null, error: mockError }) }),
-        delete: () => ({ select: () => ({ data: null, error: mockError }) }),
-      })
-    } as any;
+// 验证 URL 是否有效 (保留基本验证逻辑)
+const isValidUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return !!parsed;
+  } catch {
+    return false;
   }
-  return createClient(supabaseUrl, supabaseAnonKey);
 };
 
-export const supabase = createSafeClient();
+// 检查配置状态
+export const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && isValidUrl(supabaseUrl);
+
+if (!isSupabaseConfigured) {
+  console.error('❌ Supabase 配置缺失或无效！');
+  console.error('请检查以下内容：');
+  console.error('1. .env 文件是否在 moya/ 目录下（和 package.json 同级）');
+  console.error('2. .env 文件内容格式：');
+  console.error('   VITE_SUPABASE_URL=https://your-project.supabase.co');
+  console.error('   VITE_SUPABASE_ANON_KEY=eyJhbGci...');
+  console.error('3. 修改 .env 后是否重启了 npm run dev');
+}
+
+// 直接导出客户端，如果配置缺失则允许 createClient 抛出错误或返回不可用实例
+// 我们将在 App.tsx 中通过 isSupabaseConfigured 进行 UI 阻断
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-key'
+);
