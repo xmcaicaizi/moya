@@ -163,15 +163,15 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
   };
 
   const renderPromptCard = () => (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-800 p-4">
+    <div className="glass-panel rounded-2xl shadow-elevation p-4">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">AI Copilot</p>
-          <p className="text-sm font-semibold text-ink dark:text-white">续写指令</p>
+          <p className="text-xs uppercase tracking-widest text-muted">AI Copilot</p>
+          <p className="text-sm font-semibold text-primary">续写指令</p>
         </div>
         <button
           onClick={() => setShowAiPrompt(false)}
-          className="text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-white text-lg leading-none"
+          className="text-muted hover:text-primary text-lg leading-none"
         >
           ×
         </button>
@@ -180,7 +180,7 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
         value={aiInstruction}
         onChange={(e) => setAiInstruction(e.target.value)}
         placeholder="想要怎么写？(例如：'加入一个反转'，留空则自由发挥)"
-        className="w-full p-3 text-sm border border-gray-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/10 focus:border-ink resize-none bg-gray-50 dark:bg-zinc-900 text-ink dark:text-white"
+        className="w-full p-3 text-sm border border-surface-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 resize-none bg-surface-1 text-primary placeholder:text-muted"
         rows={5}
         autoFocus
         onKeyDown={(e) => {
@@ -191,10 +191,10 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
         }}
       />
       <div className="flex justify-between items-center pt-3">
-        <span className="text-[10px] text-gray-400 dark:text-gray-500">Enter 发送，Shift+Enter 换行</span>
+        <span className="text-[10px] text-muted">Enter 发送，Shift+Enter 换行</span>
         <button
           onClick={executeAI}
-          className="px-4 py-1.5 bg-ink text-white text-xs font-medium rounded-md hover:opacity-90 transition-opacity"
+          className="px-4 py-1.5 btn-primary text-xs font-medium rounded-md hover:opacity-90 transition-opacity"
         >
           开始生成
         </button>
@@ -203,9 +203,9 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
   );
 
   const renderPlaceholderCard = () => (
-    <div className="bg-white/70 dark:bg-zinc-900/60 border border-dashed border-gray-200 dark:border-zinc-700 rounded-2xl p-4 text-sm text-gray-400 dark:text-gray-500">
-      <p className="font-medium text-gray-500 dark:text-gray-300 mb-1">AI 续写提示区</p>
-      <p>点击上方 <span className="font-semibold text-ink dark:text-white">AI 续写</span> 按钮，给 AI 一条指令，这里会展示可编辑的提示框。</p>
+    <div className="glass-panel border border-dashed border-surface-3 rounded-2xl p-4 text-sm text-muted">
+      <p className="font-medium text-primary mb-1">AI 续写提示区</p>
+      <p>点击上方 <span className="font-semibold text-primary">AI 续写</span> 按钮，给 AI 一条指令，这里会展示可编辑的提示框。</p>
     </div>
   );
 
@@ -214,10 +214,10 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
   return (
     <div className="relative flex flex-col h-full">
       {/* 悬浮工具栏 (Glassmorphism) */}
-      <div className="sticky top-6 z-20 mx-auto mb-8 flex items-center gap-3 bg-white/90 dark:bg-zinc-900/70 backdrop-blur shadow-lg border border-gray-100 dark:border-zinc-800 rounded-full px-4 py-2 transition-all hover:shadow-xl">
-        <div className="flex items-center gap-2 border-r pr-4 mr-2 border-gray-100 dark:border-zinc-800">
+      <div className="sticky top-6 z-20 mx-auto mb-8 flex items-center gap-3 glass-panel shadow-elevation rounded-full px-4 py-2 transition-all">
+        <div className="flex items-center gap-2 border-r pr-4 mr-2 border-surface-3">
           {isSaving ? (
-            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+            <span className="text-xs text-muted flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" />
               Saving...
             </span>
@@ -230,7 +230,7 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
         </div>
 
         {status ? (
-          <div className="text-xs text-indigo-500 dark:text-indigo-300 animate-pulse font-medium flex items-center gap-1">
+          <div className="text-xs text-indigo-500 animate-pulse font-medium flex items-center gap-1">
             <Brain className="w-3 h-3" />
             {status}
           </div>
@@ -239,13 +239,13 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
             <button
               onClick={handleSyncMemory}
               disabled={isSyncing}
-              className="p-2 text-gray-500 dark:text-gray-300 hover:text-ink hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              className="p-2 text-muted hover:text-primary hover:bg-surface-3 rounded-full transition-colors"
               title="同步记忆"
             >
               {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
             </button>
             
-            <div className="w-px h-4 bg-gray-200 dark:bg-zinc-700"></div>
+            <div className="w-px h-4 bg-surface-3"></div>
 
             <button 
               onClick={handleAIContinue}
@@ -253,10 +253,10 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
               className={`
                 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
                 ${isGenerating 
-                  ? 'bg-gray-100 text-gray-400 cursor-wait' 
+                  ? 'bg-surface-3 text-muted cursor-wait' 
                   : showAiPrompt
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-ink text-white hover:bg-gray-800 hover:scale-105 active:scale-95'
+                    ? 'bg-surface-4 text-primary'
+                    : 'btn-primary text-white hover:scale-105 active:scale-95'
                 }
               `}
             >
@@ -268,7 +268,7 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
       </div>
 
       <div className="relative flex justify-center px-4 lg:px-0 pb-16">
-        <div className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-none sm:rounded-xl shadow-sm dark:shadow-lg/10 sm:shadow-none min-h-[80vh] mx-auto border border-transparent dark:border-zinc-800">
+        <div className="w-full max-w-3xl bg-surface-2 rounded-none sm:rounded-xl shadow-elevation sm:shadow-none min-h-[80vh] mx-auto border border-surface-3">
           <EditorContent editor={editor} />
         </div>
 

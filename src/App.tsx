@@ -55,7 +55,7 @@ function App() {
   const ThemeToggle = ({ className = '' }: { className?: string }) => (
     <button
       onClick={toggleTheme}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all bg-white/60 dark:bg-zinc-900/70 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-200 hover:shadow ${className}`}
+      className={`glass-panel flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-muted hover:text-primary transition-all ${className}`}
       aria-label="切换主题"
     >
       {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
@@ -263,26 +263,26 @@ function App() {
   
   // Login Screen
   if (!user) return (
-    <div className="relative h-screen flex flex-col items-center justify-center bg-paper dark:bg-zinc-950 p-6 text-ink dark:text-zinc-100 transition-colors">
+    <div className="relative h-screen flex flex-col items-center justify-center bg-surface-1 text-primary transition-colors p-6">
       <div className="absolute top-6 right-6">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="space-y-2">
-          <h1 className="text-5xl font-serif font-bold text-ink dark:text-white tracking-tight">墨矢 Moya</h1>
+          <h1 className="text-5xl font-serif font-bold text-primary tracking-tight">墨矢 Moya</h1>
         </div>
         
         {/* Login Card */}
-        <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-zinc-800 max-w-sm mx-auto w-full">
+        <div className="surface-card p-8 rounded-2xl max-w-sm mx-auto w-full">
           <button 
             onClick={handleGoogleSignIn}
-            className="w-full py-2.5 px-4 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-ink dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all flex items-center justify-center gap-2 shadow-sm mb-4"
+            className="w-full py-2.5 px-4 glass-panel rounded-lg transition-all flex items-center justify-center gap-2 text-primary mb-4"
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
             <span className="font-medium text-sm">使用 Google 继续</span>
           </button>
           {authError && (
-            <div className="text-left text-xs text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/40 rounded-lg p-3 mb-4">
+            <div className="text-left text-xs text-red-500 bg-red-50/80 dark:bg-red-500/10 border border-red-200/70 rounded-lg p-3 mb-4">
               {authError}
               <div className="text-[11px] text-red-400 mt-1">
                 如提示 provider 未启用，请前往 Supabase Dashboard → Authentication → Providers 启用 Google，并填写 GCP Client ID/Secret。
@@ -290,10 +290,10 @@ function App() {
             </div>
           )}
 
-          <div className="relative flex py-2 items-center mb-6 text-gray-400 dark:text-gray-500">
-            <div className="flex-grow border-t border-gray-200 dark:border-zinc-800"></div>
+          <div className="relative flex py-2 items-center mb-6 text-muted">
+            <div className="flex-grow border-t border-surface-3"></div>
             <span className="flex-shrink-0 mx-4 text-xs">或者使用邮箱</span>
-            <div className="flex-grow border-t border-gray-200 dark:border-zinc-800"></div>
+            <div className="flex-grow border-t border-surface-3"></div>
           </div>
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
@@ -304,7 +304,7 @@ function App() {
                 placeholder="邮箱地址"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:bg-white dark:focus:bg-zinc-800 focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all text-ink dark:text-white"
+                className="w-full px-4 py-2.5 bg-surface-1 border border-surface-3 rounded-lg text-sm focus:bg-surface-2 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all text-primary"
               />
             </div>
             <div>
@@ -314,13 +314,13 @@ function App() {
                 placeholder="密码 (至少6位)"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:bg-white dark:focus:bg-zinc-800 focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all text-ink dark:text-white"
+                className="w-full px-4 py-2.5 bg-surface-1 border border-surface-3 rounded-lg text-sm focus:bg-surface-2 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all text-primary"
               />
             </div>
             <button 
               type="submit"
               disabled={authLoading}
-              className="w-full py-2.5 px-4 bg-ink text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 btn-primary rounded-lg font-medium hover:opacity-90 transition-all shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2"
             >
               {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isSignUp ? '注册账号' : '登录')}
             </button>
@@ -329,26 +329,26 @@ function App() {
           <div className="mt-4 text-center">
             <button 
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-xs text-gray-500 dark:text-gray-400 hover:text-ink dark:hover:text-white underline underline-offset-2"
+              className="text-xs text-muted hover:text-primary underline underline-offset-2"
             >
               {isSignUp ? '已有账号？直接登录' : '没有账号？点击注册'}
             </button>
           </div>
           
-          <div className="mt-6 text-left bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700 rounded-lg p-4 text-xs space-y-2">
-            <p className="font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+          <div className="mt-6 text-left bg-surface-2 border border-surface-3 rounded-lg p-4 text-xs space-y-2">
+            <p className="font-semibold text-primary flex items-center gap-2">
               <AlertTriangle className="w-3 h-3 text-amber-400" />
               调试信息
             </p>
-            <ul className="space-y-1 text-gray-500 dark:text-gray-400">
+            <ul className="space-y-1 text-muted">
               <li>• Supabase 连接：{isSupabaseConfigured ? '✅ 已配置' : '❌ 缺失 VITE_SUPABASE_*'}</li>
               <li>• 智谱 AI：{isZhipuConfigured ? '✅ 可用' : '❌ 缺失 VITE_ZHIPU_API_KEY'}</li>
               <li>• Google 登录：若报错，请在 Supabase → Auth → Providers 启用 Google。</li>
               <li>• 邮箱登录：默认开启。如需跳过邮件验证，可在 Supabase Email 设置中关闭 Confirm Email。</li>
             </ul>
-            <details className="mt-3 bg-white dark:bg-zinc-900 rounded p-2 border border-gray-200 dark:border-zinc-700">
-              <summary className="cursor-pointer text-gray-700 dark:text-gray-300 font-semibold">🔍 环境变量检测</summary>
-              <div className="mt-2 text-[10px] font-mono space-y-1 text-gray-600 dark:text-gray-400">
+            <details className="mt-3 bg-surface-1 rounded p-2 border border-surface-3">
+              <summary className="cursor-pointer text-primary font-semibold">🔍 环境变量检测</summary>
+              <div className="mt-2 text-[10px] font-mono space-y-1 text-muted">
                 <div>VITE_SUPABASE_URL: {import.meta.env.VITE_SUPABASE_URL || '❌ undefined'}</div>
                 <div>VITE_SUPABASE_ANON_KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? `✅ ${import.meta.env.VITE_SUPABASE_ANON_KEY.slice(0,15)}...` : '❌ undefined'}</div>
                 <div>VITE_ZHIPU_API_KEY: {import.meta.env.VITE_ZHIPU_API_KEY ? `✅ ${import.meta.env.VITE_ZHIPU_API_KEY.slice(0,10)}...` : '❌ undefined'}</div>
@@ -366,15 +366,15 @@ function App() {
   // Editor View
   if (selectedChapter) {
     return (
-      <div className="h-screen flex flex-col bg-paper dark:bg-zinc-950 text-ink dark:text-zinc-100 transition-colors">
-        <header className="bg-white/80 dark:bg-zinc-950/70 backdrop-blur-sm border-b border-gray-100 dark:border-zinc-800 p-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="h-screen flex flex-col bg-surface-1 text-primary transition-colors">
+        <header className="glass-panel shadow-elevation rounded-none p-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSelectedChapter(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-gray-500 dark:text-gray-200">
+            <button onClick={() => setSelectedChapter(null)} className="p-2 hover:bg-surface-3 rounded-full transition-colors text-muted hover:text-primary">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="font-bold text-lg text-ink dark:text-white font-serif">{selectedChapter.title}</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+              <h2 className="font-bold text-lg text-primary font-serif">{selectedChapter.title}</h2>
+              <p className="text-xs text-muted flex items-center gap-1">
                 {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>}
                 {isSaving ? '保存中...' : '已同步'}
               </p>
@@ -385,7 +385,7 @@ function App() {
             <ThemeToggle className="hidden sm:flex" />
             <button 
               onClick={() => setShowSettings(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted hover:text-primary hover:bg-surface-3 rounded-lg transition-colors"
             >
               <Book className="w-4 h-4" />
               <span className="hidden sm:inline">设定集</span>
@@ -415,23 +415,23 @@ function App() {
   // Chapter List View
   if (selectedNovel) {
     return (
-      <div className="min-h-screen bg-paper dark:bg-zinc-950 text-ink dark:text-zinc-100 p-6 sm:p-12 transition-colors">
+      <div className="min-h-screen bg-surface-1 text-primary p-6 sm:p-12 transition-colors">
         <div className="max-w-4xl mx-auto">
-          <header className="flex items-center gap-4 mb-12">
-            <button onClick={() => setSelectedNovel(null)} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-gray-500 dark:text-gray-300">
+          <header className="glass-panel rounded-2xl shadow-elevation flex items-center gap-4 mb-12 p-4">
+            <button onClick={() => setSelectedNovel(null)} className="p-2 -ml-2 hover:bg-surface-3 rounded-full transition-colors text-muted hover:text-primary">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div>
-              <h1 className="text-3xl font-serif font-bold text-ink dark:text-white">{selectedNovel.title}</h1>
-              <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">共 {chapters.length} 章</p>
+              <h1 className="text-3xl font-serif font-bold text-primary">{selectedNovel.title}</h1>
+              <p className="text-muted text-sm mt-1">共 {chapters.length} 章</p>
             </div>
             <div className="ml-auto flex gap-2 items-center">
               <ThemeToggle className="hidden sm:flex" />
-              <button onClick={() => setShowSettings(true)} className="px-4 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-ink dark:text-white rounded-xl flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-800 shadow-sm transition-all">
+              <button onClick={() => setShowSettings(true)} className="px-4 py-2 bg-surface-2 border border-surface-3 text-primary rounded-xl flex items-center gap-2 hover:bg-surface-3 transition-all">
                 <Book className="w-4 h-4" /> 
                 <span className="hidden sm:inline">设定集</span>
               </button>
-              <button onClick={createChapter} className="px-4 py-2 bg-ink text-white rounded-xl flex items-center gap-2 hover:opacity-90 shadow-lg shadow-gray-200/30 transition-all">
+              <button onClick={createChapter} className="px-4 py-2 btn-primary rounded-xl flex items-center gap-2 hover:opacity-90 shadow-lg shadow-sky-900/20 transition-all">
                 <Plus className="w-4 h-4" /> 
                 <span className="hidden sm:inline">新建章节</span>
               </button>
@@ -440,31 +440,31 @@ function App() {
           
           <div className="grid gap-3">
             {chapters.length === 0 && (
-              <div className="text-center py-20 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-2xl">
-                <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+              <div className="text-center py-20 border-2 border-dashed border-surface-3 rounded-2xl bg-surface-2">
+                <div className="w-16 h-16 bg-surface-1 rounded-full flex items-center justify-center mx-auto mb-4 text-muted">
                   <PenLine className="w-8 h-8" />
                 </div>
-                <p className="text-gray-400 dark:text-gray-500">暂无章节，开始你的第一章吧</p>
+                <p className="text-muted">暂无章节，开始你的第一章吧</p>
               </div>
             )}
             {chapters.map((chapter, index) => (
               <div 
                 key={chapter.id} 
                 onClick={() => setSelectedChapter(chapter)}
-                className="group p-5 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-xl cursor-pointer hover:border-gray-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex items-center justify-between"
+                className="group p-5 surface-card rounded-xl cursor-pointer hover:border-surface-4 hover:shadow-elevation transition-all flex items-center justify-between"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-gray-300 dark:text-gray-500 font-serif text-lg font-bold italic w-8">
+                  <span className="text-muted font-serif text-lg font-bold italic w-8">
                     {(index + 1).toString().padStart(2, '0')}
                   </span>
                   <div>
-                    <h3 className="font-medium text-ink dark:text-white text-lg group-hover:text-blue-600 transition-colors">{chapter.title}</h3>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <h3 className="font-medium text-primary text-lg group-hover:text-brand transition-colors">{chapter.title}</h3>
+                    <p className="text-xs text-muted mt-0.5">
                       上次编辑: {new Date(chapter.updated_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180 group-hover:translate-x-1 transition-transform" />
+                <ArrowLeft className="w-4 h-4 text-muted rotate-180 group-hover:translate-x-1 transition-transform" />
               </div>
             ))}
           </div>
@@ -481,22 +481,22 @@ function App() {
 
   // Novel List View (Home)
   return (
-    <div className="min-h-screen bg-paper dark:bg-zinc-950 text-ink dark:text-zinc-100 p-6 sm:p-12 transition-colors">
+    <div className="min-h-screen bg-surface-1 text-primary p-6 sm:p-12 transition-colors">
       <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-16">
+        <header className="glass-panel shadow-elevation rounded-2xl flex justify-between items-center mb-16 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-ink text-white rounded-lg flex items-center justify-center shadow-lg shadow-ink/30">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg" style={{ backgroundColor: "var(--brand)" }}>
               <span className="font-serif font-bold text-xl">M</span>
             </div>
-            <h1 className="text-2xl font-serif font-bold text-ink dark:text-white tracking-tight">墨矢</h1>
+            <h1 className="text-2xl font-serif font-bold tracking-tight">墨矢</h1>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle className="hidden sm:flex" />
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-ink dark:text-white">{user.email}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Pro Plan</p>
+              <p className="text-sm font-medium text-primary">{user.email}</p>
+              <p className="text-xs text-muted">Pro Plan</p>
             </div>
-            <button onClick={signOut} className="p-2 text-gray-400 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-full transition-colors">
+            <button onClick={signOut} className="p-2 text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors">
               <LogOut className="w-5 h-5" />
             </button>
           </div>
@@ -504,7 +504,7 @@ function App() {
 
         <div className="mb-12">
           <div className="flex items-center justify-between gap-4 mb-3">
-            <h2 className="text-4xl font-serif font-bold text-ink dark:text-white">我的作品</h2>
+            <h2 className="text-4xl font-serif font-bold">我的作品</h2>
             <ThemeToggle className="sm:hidden" />
           </div>
           <div className="flex gap-3 max-w-xl">
@@ -513,13 +513,13 @@ function App() {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="给新书起个名字..." 
-              className="flex-1 p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink/10 focus:border-ink transition-all shadow-sm dark:shadow-none text-ink dark:text-white"
+              className="flex-1 p-4 bg-surface-2 border border-surface-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all shadow-sm text-primary"
               onKeyDown={(e) => e.key === 'Enter' && createNovel()}
             />
             <button 
               onClick={createNovel} 
               disabled={!newTitle.trim() || creating}
-              className="px-8 bg-ink text-white rounded-xl font-medium hover:opacity-90 disabled:opacity-50 shadow-lg shadow-ink/30 transition-all"
+              className="px-8 btn-primary rounded-xl font-medium hover:opacity-90 disabled:opacity-50 shadow-lg shadow-sky-900/25 transition-all"
             >
               {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : '新建'}
             </button>
@@ -531,17 +531,17 @@ function App() {
             <div 
               key={novel.id} 
               onClick={() => setSelectedNovel(novel)}
-              className="group relative bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600 hover:shadow-xl transition-all cursor-pointer h-72 flex flex-col"
+              className="group relative surface-card rounded-2xl overflow-hidden hover:border-surface-4 hover:shadow-elevation transition-all cursor-pointer h-72 flex flex-col"
             >
               {/* 封面占位 */}
               <div className={`h-32 w-full bg-gradient-to-br ${getGradient(index)} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
               
               <div className="p-6 flex-1 flex flex-col">
-                <h3 className="text-xl font-serif font-bold text-ink dark:text-white mb-2 line-clamp-2 group-hover:text-blue-400 transition-colors">
+                <h3 className="text-xl font-serif font-bold mb-2 line-clamp-2 group-hover:text-brand transition-colors">
                   {novel.title}
                 </h3>
-                <div className="mt-auto flex items-center text-xs text-gray-400 dark:text-gray-500">
-                  <span className="bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded text-gray-500 dark:text-gray-300">连载中</span>
+                <div className="mt-auto flex items-center text-xs text-muted">
+                  <span className="bg-surface-1 px-2 py-1 rounded text-muted">连载中</span>
                   <span className="ml-auto">{new Date(novel.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
