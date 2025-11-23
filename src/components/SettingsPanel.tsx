@@ -109,21 +109,21 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
 
       {/* Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 w-96 bg-white dark:bg-zinc-950 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-100/80 dark:border-zinc-800/80 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="p-5 border-b flex justify-between items-center bg-paper">
-          <h2 className="font-serif font-bold text-xl flex items-center gap-2 text-ink">
+        <div className="p-5 border-b flex justify-between items-center bg-paper dark:bg-zinc-900/40 border-gray-100 dark:border-zinc-800">
+          <h2 className="font-serif font-bold text-xl flex items-center gap-2 text-ink dark:text-white">
             <Sparkles className="w-5 h-5 text-violet-500" />
             世界设定集
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-gray-500 dark:text-gray-300">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex p-2 gap-1 border-b bg-gray-50/50">
+        <div className="flex p-2 gap-1 border-b bg-gray-50/50 dark:bg-zinc-900/40 border-gray-100 dark:border-zinc-800">
           {[
             { id: 'character', icon: User, label: '角色' },
             { id: 'world', icon: Map, label: '世界' },
@@ -134,8 +134,8 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all
                 ${activeTab === tab.id 
-                  ? 'bg-white text-ink shadow-sm ring-1 ring-black/5' 
-                  : 'text-gray-500 hover:bg-white/50 hover:text-gray-700'}`}
+                  ? 'bg-white dark:bg-zinc-800 text-ink dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+                  : 'text-gray-500 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-zinc-800/40 hover:text-gray-700 dark:hover:text-white'}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -144,19 +144,19 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-paper/50">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-paper/50 dark:bg-zinc-900/40">
           {loading ? (
             <div className="flex justify-center py-10 text-gray-400"><Loader2 className="animate-spin w-6 h-6" /></div>
           ) : items.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-              <p className="text-gray-400 text-sm">暂无{activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : '物品'}设定</p>
-              <p className="text-gray-300 text-xs mt-1">下方添加你的第一个创意</p>
+            <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-zinc-700 rounded-xl">
+              <p className="text-gray-400 dark:text-gray-300 text-sm">暂无{activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : '物品'}设定</p>
+              <p className="text-gray-300 dark:text-gray-500 text-xs mt-1">下方添加你的第一个创意</p>
             </div>
           ) : (
             items.map(item => (
-              <div key={item.id} className="group relative bg-white p-4 border border-gray-100 rounded-xl hover:border-gray-300 hover:shadow-md transition-all">
+              <div key={item.id} className="group relative bg-white dark:bg-zinc-900 p-4 border border-gray-100 dark:border-zinc-800 rounded-xl hover:border-gray-300 dark:hover:border-zinc-600 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
-                  <h3 className="font-bold text-ink mb-1">{item.metadata.name}</h3>
+                  <h3 className="font-bold text-ink dark:text-white mb-1">{item.metadata.name}</h3>
                   <button 
                     onClick={() => handleDelete(item.id)}
                     className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -164,27 +164,27 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{item.content.split('：')[1]}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-3">{item.content.split('：')[1]}</p>
               </div>
             ))
           )}
         </div>
 
         {/* Create Form */}
-        <div className="p-5 border-t bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">新增设定</h4>
+        <div className="p-5 border-t bg-white dark:bg-zinc-950 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-gray-100 dark:border-zinc-800">
+          <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">新增设定</h4>
           <div className="space-y-3">
             <input 
               placeholder="名称 (如: 萧炎)"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-ink/5 focus:border-ink transition-all"
+              className="w-full p-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-ink/5 focus:border-ink transition-all"
             />
             <textarea 
               placeholder="详细描述..."
               value={newDesc}
               onChange={e => setNewDesc(e.target.value)}
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm h-24 resize-none focus:bg-white focus:ring-2 focus:ring-ink/5 focus:border-ink transition-all"
+              className="w-full p-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm h-24 resize-none focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-ink/5 focus:border-ink transition-all text-gray-900 dark:text-gray-100"
             />
             <button 
               onClick={handleCreate}
