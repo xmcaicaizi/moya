@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, User, Map, Box, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import EmbeddingService from '../lib/embedding';
+import { logger } from '../lib/logger';
 
 interface SettingsPanelProps {
   novelId: string;
@@ -35,13 +36,18 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
 
   const fetchSettings = async () => {
     setLoading(true);
-    const { data } = await supabase
+    logger.info('settings', 'Fetching settings', { novelId, type: activeTab });
+    const { data, error } = await supabase
       .from('documents')
       .select('*')
       .eq('novel_id', novelId)
       .contains('metadata', { type: activeTab });
     
+    if (error) {
+      logger.error('settings', 'Fetch settings failed', error);
+    }
     if (data) {
+      logger.info('settings', 'Fetched settings', { count: data.length });
       setItems(data.map((d: any) => ({
         id: d.id,
         content: d.content,
@@ -56,6 +62,7 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
     setIsCreating(true);
 
     try {
+      logger.info('settings', 'Creating setting', { type: activeTab, name: newName });
       const fullText = `【${activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : '物品'}】${newName}：${newDesc}`;
       const vector = await EmbeddingService.getEmbedding(fullText);
 
@@ -73,9 +80,10 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
 
       setNewName('');
       setNewDesc('');
+      logger.info('settings', 'Setting created');
       fetchSettings();
     } catch (err) {
-      console.error(err);
+      logger.error('settings', 'Create setting failed', err);
       alert('创建失败');
     } finally {
       setIsCreating(false);
@@ -84,6 +92,7 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除此设定吗？')) return;
+    logger.warn('settings', 'Deleting setting', { id });
     await supabase.from('documents').delete().eq('id', id);
     fetchSettings();
   };
