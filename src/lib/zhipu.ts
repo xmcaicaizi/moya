@@ -28,7 +28,8 @@ export const streamCompletion = async (
   context: string,
   instruction: string | null,
   onChunk: (text: string) => void,
-  onError: (err: any) => void
+  onError: (err: any) => void,
+  thinking?: { type: 'enabled' | 'disabled' }
 ) => {
   if (!API_KEY) {
     const err = new Error("Missing VITE_ZHIPU_API_KEY. 请在 .env 中配置真实的智谱 API Key。");
@@ -63,7 +64,8 @@ export const streamCompletion = async (
         ],
         stream: true,
         temperature: 0.7,
-        top_p: 0.9
+        top_p: 0.9,
+        thinking: thinking
       })
     });
 

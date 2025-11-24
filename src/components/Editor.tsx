@@ -16,6 +16,22 @@ interface EditorProps {
   chapterId: string;
 }
 
+const TRIM_WINDOW = 200;
+
+const trimOverlap = (existing: string, incoming: string) => {
+  if (!incoming) return incoming;
+  const tail = existing.slice(-TRIM_WINDOW);
+  const maxCompare = Math.min(tail.length, incoming.length);
+  for (let len = maxCompare; len > 0; len--) {
+    if (tail.slice(-len) === incoming.slice(0, len)) {
+      return incoming.slice(len);
+    }
+  }
+  return incoming;
+};
+
+const THINKING_KEY = 'moya-thinking-mode';
+
 const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId }: EditorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -24,6 +40,14 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
   // AI Prompt UI State
   const [showAiPrompt, setShowAiPrompt] = useState(false);
   const [aiInstruction, setAiInstruction] = useState('');
+  const [thinkingMode, setThinkingMode] = useState<boolean>(() => {
+    const stored = localStorage.getItem(THINKING_KEY);
+    return stored !== 'false';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(THINKING_KEY, JSON.stringify(thinkingMode));
+  }, [thinkingMode]);
 
   const editor = useEditor({
     extensions: [
@@ -108,46 +132,68 @@ const Editor = ({ initialContent, onUpdate, isSaving = false, novelId, chapterId
 
     setIsGenerating(true);
     logger.info('ai', 'Starting AI continuation', { chapterId, contextLength: currentContext.length, instruction: aiInstruction });
-    setStatus('🧠 回忆剧情中...');
+      setStatus(thinkingMode ? '🧠 深度思考中，正在回忆剧情...' : '⚡ 速写模式，正在回忆剧情...');
     
     try {
       const vector = await EmbeddingService.getEmbedding(currentContext);
       
-      const { data: relatedDocs } = await supabase.rpc('match_documents', {
-        query_embedding: vector,
-        match_threshold: 0.3,
-        match_count: 3,
-        filter_novel_id: novelId
-      });
+      const [{ data: relatedDocs }, { data: outlineDocs }] = await Promise.all([
+        supabase.rpc('match_documents', {
+          query_embedding: vector,
+          match_threshold: 0.3,
+          match_count: 5,
+          filter_novel_id: novelId
+        }),
+        supabase
+          .from('documents')
+          .select('content, metadata')
+          .eq('novel_id', novelId)
+          .contains('metadata', { type: 'outline' })
+          .limit(3)
+      ]);
+
+      let outlineContext = "";
+      if (outlineDocs && outlineDocs.length > 0) {
+        outlineContext = `
+【剧情大纲提示】：
+${outlineDocs
+  .map((d: any, idx: number) => `${idx + 1}. ${d.content}`)
+  .join('\n')}
+
+`;
+      }
 
       let ragContext = "";
       if (relatedDocs && relatedDocs.length > 0) {
         logger.info('ai', 'Found related documents', { count: relatedDocs.length });
-        setStatus(`📖 参考了 ${relatedDocs.length} 处相关设定...`);
-        ragContext = `
-【相关剧情回忆】：
+        setStatus(`📖 参考了 ${relatedDocs.length} 处相关设定${outlineContext ? ' + 大纲' : ''}...`);
+        ragContext = `【相关剧情回忆】：
 ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
 
-【当前正文】：
 `;
       } else {
-        setStatus('✨ 灵感生成中...');
+        setStatus(outlineContext ? '🧭 正在参考大纲续写...' : '✨ 灵感生成中...');
       }
 
-      const finalPrompt = ragContext + currentContext;
+      const finalPrompt = outlineContext + ragContext + `【当前正文】：
+${currentContext}`;
 
       editor.commands.insertContent('\n');
+      setStatus(thinkingMode ? '✍️ 深度模式续写（自动避免重复）...' : '✍️ 快速续写（自动避免重复）...');
 
       await streamCompletion(
         finalPrompt,
         aiInstruction || null, // Pass the instruction
         (chunk) => {
-          editor.commands.insertContent(chunk);
+          const cleanChunk = trimOverlap(editor.getText(), chunk);
+          if (!cleanChunk) return;
+          editor.commands.insertContent(cleanChunk);
           editor.commands.scrollIntoView();
         },
         (err) => {
           throw err;
-        }
+        },
+        { type: thinkingMode ? 'enabled' : 'disabled' }
       );
       
       // Clear instruction after success
@@ -158,7 +204,8 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
       alert(`AI 生成失败: ${err.message}`);
     } finally {
       setIsGenerating(false);
-      setStatus('');
+      setStatus(thinkingMode ? '✨ 深度生成完成（已去重）' : '✨ 速写完成（已去重）');
+      setTimeout(() => setStatus(''), 2500);
     }
   };
 
@@ -246,6 +293,20 @@ ${relatedDocs.map((d: any) => d.content).join('\n---\n')}
             </button>
             
             <div className="w-px h-4 bg-surface-3"></div>
+
+          <button
+            onClick={() => setThinkingMode(!thinkingMode)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+              thinkingMode
+                ? 'bg-surface-3 border-surface-4 text-primary'
+                : 'bg-transparent border-surface-3 text-muted hover:text-primary'
+            }`}
+            title="深度思考模式会更严格遵守剧情/大纲，但速度略慢"
+          >
+            {thinkingMode ? '🧠 深度思考 ON' : '⚡ 速写模式 ON'}
+          </button>
+
+          <div className="w-px h-4 bg-surface-3"></div>
 
             <button 
               onClick={handleAIContinue}

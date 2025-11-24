@@ -10,22 +10,26 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
+type SettingType = 'character' | 'world' | 'item' | 'outline';
+
 interface SettingItem {
   id: string;
   content: string;
   metadata: {
-    type: 'character' | 'world' | 'item';
+    type: SettingType;
     name: string;
+    section?: string;
   };
 }
 
 const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
-  const [activeTab, setActiveTab] = useState<'character' | 'world' | 'item'>('character');
+  const [activeTab, setActiveTab] = useState<SettingType>('character');
   const [items, setItems] = useState<SettingItem[]>([]);
   const [loading, setLoading] = useState(false);
   
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newSection, setNewSection] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -58,12 +62,25 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
   };
 
   const handleCreate = async () => {
-    if (!newName || !newDesc) return;
+    if (!newName || !newDesc) {
+      alert(activeTab === 'outline' ? '标题和大纲内容都不能为空' : '名称和描述都不能为空');
+      return;
+    }
+    if (activeTab === 'outline' && newDesc.length < 10) {
+      alert('大纲描述至少需要 10 个字');
+      return;
+    }
     setIsCreating(true);
 
     try {
       logger.info('settings', 'Creating setting', { type: activeTab, name: newName });
-      const fullText = `【${activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : '物品'}】${newName}：${newDesc}`;
+      const prefixMap: Record<SettingType, string> = {
+        character: '角色',
+        world: '世界观',
+        item: '物品',
+        outline: newSection ? `大纲·${newSection}` : '大纲'
+      };
+      const fullText = `【${prefixMap[activeTab]}】${newName}：${newDesc}`;
       const vector = await EmbeddingService.getEmbedding(fullText);
 
       const { error } = await supabase.from('documents').insert({
@@ -72,7 +89,8 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
         embedding: vector,
         metadata: {
           type: activeTab,
-          name: newName
+          name: newName,
+          section: activeTab === 'outline' ? newSection || undefined : undefined
         }
       });
 
@@ -80,6 +98,7 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
 
       setNewName('');
       setNewDesc('');
+      setNewSection('');
       logger.info('settings', 'Setting created');
       fetchSettings();
     } catch (err) {
@@ -128,6 +147,7 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
             { id: 'character', icon: User, label: '角色' },
             { id: 'world', icon: Map, label: '世界' },
             { id: 'item', icon: Box, label: '物品' },
+            { id: 'outline', icon: Sparkles, label: '大纲' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -149,8 +169,8 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
             <div className="flex justify-center py-10 text-gray-400"><Loader2 className="animate-spin w-6 h-6" /></div>
           ) : items.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-surface-3 rounded-xl bg-surface-2">
-              <p className="text-muted text-sm">暂无{activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : '物品'}设定</p>
-              <p className="text-muted text-xs mt-1">下方添加你的第一个创意</p>
+              <p className="text-muted text-sm">暂无{activeTab === 'character' ? '角色' : activeTab === 'world' ? '世界观' : activeTab === 'item' ? '物品' : '剧情大纲'}</p>
+              <p className="text-muted text-xs mt-1">{activeTab === 'outline' ? '点击下方新增节点，梳理故事结构' : '下方添加你的第一个创意'}</p>
             </div>
           ) : (
             items.map(item => (
@@ -180,8 +200,16 @@ const SettingsPanel = ({ novelId, isOpen, onClose }: SettingsPanelProps) => {
               onChange={e => setNewName(e.target.value)}
               className="w-full p-3 bg-surface-1 border border-surface-3 rounded-xl text-sm focus:bg-surface-2 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all text-primary"
             />
+            {activeTab === 'outline' && (
+              <input 
+                placeholder="章节 / 节点（如：第 3 章）"
+                value={newSection}
+                onChange={e => setNewSection(e.target.value)}
+                className="w-full p-3 bg-surface-1 border border-surface-3 rounded-xl text-sm focus:bg-surface-2 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all text-primary"
+              />
+            )}
             <textarea 
-              placeholder="详细描述..."
+              placeholder={activeTab === 'outline' ? '剧情概述、冲突、伏笔...' : '详细描述...'}
               value={newDesc}
               onChange={e => setNewDesc(e.target.value)}
               className="w-full p-3 bg-surface-1 border border-surface-3 rounded-xl text-sm h-24 resize-none focus:bg-surface-2 focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all text-primary"
