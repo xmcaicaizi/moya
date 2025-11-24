@@ -12,6 +12,8 @@ Moya is an AI-powered creative writing assistant designed to help novelists craf
 *   **AI Co-Author**: Context-aware continuation powered by Zhipu AI (GLM-4.5).
 *   **Long-term Memory (RAG)**: Retrieval-Augmented Generation system that remembers previous chapters and settings using Supabase Vector.
 *   **World Building**: Dedicated panel for characters, locations, and items, automatically embedded for AI retrieval.
+*   **Story Outline**: A new “Outline” tab in the World Bible lets you capture per-chapter beats; the AI treats outline snippets as high-priority RAG context so it won’t drift.
+*   **Thinking Mode Toggle**: The toolbar exposes a “Deep Thinking / Quick Draft” switch that maps to GLM-4.5’s `thinking.type` parameter (see the [official guide](https://zhipu-ef7018ed.mintlify.app/cn/guide/models/free/glm-4.5-flash#%E7%BD%91%E9%A1%B5%E6%90%AD%E5%BB%BA)); deep mode is on by default but can be turned off for faster output.
 *   **Cloud Sync**: Real-time data persistence with Supabase.
 
 ## 🛠 Tech Stack
@@ -54,14 +56,14 @@ npm run dev
 
 ## 📅 Roadmap & Status
 
-**Current Status: MVP Complete (Day 1-5)**
+**Current Status: MVP Complete (Day 1-6)**
 
 - [x] **Day 1: Setup & Auth** - Project initialization, Supabase integration.
 - [x] **Day 2: Editor Core** - Tiptap integration, chapter management, auto-save.
 - [x] **Day 3: AI Integration** - Zhipu GLM-4.5 connectivity, streaming generation.
 - [x] **Day 4: RAG Memory System** - Vector database setup, embeddings, context retrieval.
 - [x] **Day 5: World Bible & Sync** - Settings panel, active memory synchronization.
-- [ ] **Day 6: UI Polish** - Visual enhancements, dark mode.
+- [x] **Day 6: UI Polish & AI UX** - Dark mode revamp, Copilot panel, outline-driven writing, thinking toggle.
 - [ ] **Day 7: Deployment** - Production build.
 
 ## 🤝 Contributing
